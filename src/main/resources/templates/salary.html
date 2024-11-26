@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            font-family: "Lato", sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar {
+            height: 100%;
+            width: 260px;
+            position: fixed;
+            top: 66px;
+            left: 0;
+            background-color: #006DB5;
+            padding-top: 16px;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 20px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            color: black;
+        }
+
+        .active {
+            color: white;
+            font-weight: bold;
+        }
+
+        .navbar {
+            width: 100%;
+            background-color: #00154D;
+            overflow: auto;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .navbar a {
+            float: left;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .main {
+            margin-left: 280px;
+            padding: 20px;
+        }
+
+        .button {
+            background-color: #3CA9ED;
+            border: none;
+            font-size: 20px;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #006DB5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            z-index: 1000;
+        }
+
+        .form-popup input, .form-popup button {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .form-popup .btn {
+            background-color: #04AA6D;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-popup .cancel {
+            background-color: red;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="#">Crew Cloud</a>
+    </div>
+
+    <div class="sidebar">
+        <a href="adminDashboard.html" class="active"><i class="fa fa-database"></i> Dashboard</a>
+        <a href="department.html" class="active"><i class="fa fa-database"></i> Department</a>
+        <a href="employee.html"><i class="fa fa-user"></i> Employees</a>
+        <a href="leave.html"><i class="fa fa-sign-out"></i> Leaves</a>
+        <a href="salary.html"><i class="fa fa-money"></i> Salaries</a>
+        <a href="workSchedule.html"><i class="fa fa-calendar"></i> Work Schedules</a>
+    </div>
+
+    <div class="main">
+        <h1>Salaries</h1>
+        <button class="button" onclick="openAddForm()">Add Salary</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>EMPLOYEE NAME</th>
+                    <th>BASIC SALARY</th>
+                    <th>ALLOWANCES</th>
+                    <th>DEDUCTIONS</th>
+                    <th>OVERTIME SALARY</th>
+                    <th>NET SALARY</th>
+                    <th>SALARY STATUS</th>
+                    <th>PAYDATE</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="salaryTableBody">
+                <!-- Salary rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Salary Form -->
+    <div class="form-popup" id="addSalaryForm">
+        <form id="addForm">
+            <h2>Add Salary</h2>
+            <input type="number" id="employeeId" placeholder="Employee ID" required>
+            <input type="number" id="allowances" placeholder="Allowances" required>
+            <input type="number" id="deductions" placeholder="Deductions" required>
+            <button type="submit" class="btn">Save</button>
+            <button type="button" class="btn cancel" onclick="closeAddForm()">Cancel</button>
+        </form>
+    </div> 
+
+    <!-- Update Salary Form -->
+    <div class="form-popup" id="updateSalaryForm">
+        <form id="updateForm">
+            <h2>Update Salary</h2>
+            <input type="number" id="updateAllowances" placeholder="Allowances" required>
+            <input type="number" id="updateDeductions" placeholder="Deductions" required>
+            <input type="date" id="updatePayDate" placeholder="Pay Date">
+            <input type="text" id="updateSalaryStatus" placeholder="Salary Status" required>
+            <button type="submit" class="btn">Update</button>
+            <button type="button" class="btn cancel" onclick="closeUpdateForm()">Cancel</button>
+        </form>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeAddForm(); closeUpdateForm();"></div>
+
+    <script>
+        const apiUrl = "http://localhost:8080/api/salary";
+        let editingSalaryId = null;
+
+        // Load salaries
+        async function loadSalaries() {
+            const response = await fetch(apiUrl);
+            const salaries = await response.json();
+            const tbody = document.getElementById("salaryTableBody");
+            tbody.innerHTML = '';
+            salaries.forEach(salary => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${salary.salaryId}</td>
+                    <td>${salary.employeeName}</td>
+                    <td>${salary.basicSalary}</td>
+                    <td>${salary.allowances}</td>
+                    <td>${salary.deductions}</td>
+                    <td>${salary.overTimeSalary}</td>
+                    <td>${salary.netSalary}</td>
+                    <td>${salary.salaryStatus}</td>
+                    <td>${salary.payDate}</td>
+                    <td>
+                        <button onclick="openUpdateForm(${salary.salaryId})">Edit</button>
+                        <button onclick="deleteSalary(${salary.salaryId})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Open Add Form
+        function openAddForm() {
+            document.getElementById("addSalaryForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeAddForm() {
+            document.getElementById("addSalaryForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("addForm").reset();
+        }
+
+        // Open Update Form
+        async function openUpdateForm(salaryId) {
+            const response = await fetch(`${apiUrl}/${salaryId}`);
+            const salary = await response.json();
+
+            editingSalaryId = salaryId;
+            document.getElementById("updateAllowances").value = salary.allowances;
+            document.getElementById("updateDeductions").value = salary.deductions;
+            document.getElementById("updatePayDate").value = salary.payDate;
+            document.getElementById("updateSalaryStatus").value = salary.salaryStatus;
+
+            document.getElementById("updateSalaryForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeUpdateForm() {
+            document.getElementById("updateSalaryForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("updateForm").reset();
+        }
+
+        // Add salary
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newSalary = {
+                employeeId: parseInt(document.getElementById("employeeId").value),
+                allowances: parseFloat(document.getElementById("allowances").value),
+                deductions: parseFloat(document.getElementById("deductions").value),
+            };
+
+            await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newSalary),
+            });
+            closeAddForm();
+            loadSalaries();
+        });
+
+        // Update salary
+        document.getElementById("updateForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const updatedSalary = {
+                salaryStatus: document.getElementById("updateSalaryStatus").value,
+                payDate: document.getElementById("updatePayDate").value,
+                deductions: parseFloat(document.getElementById("updateDeductions").value),
+                allowances: parseFloat(document.getElementById("updateAllowances").value),
+            };
+
+            await fetch(`${apiUrl}/${editingSalaryId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedSalary),
+            });
+            closeUpdateForm();
+            loadSalaries();
+        });
+
+        // Delete salary
+        async function deleteSalary(salaryId) {
+            if (confirm("Are you sure you want to delete this salary?")) {
+                await fetch(`${apiUrl}/${salaryId}`, { method: "DELETE" });
+                loadSalaries();
+            }
+        }
+
+        // Load salaries on page load
+        loadSalaries();
+    </script>
+</body>
+</html>

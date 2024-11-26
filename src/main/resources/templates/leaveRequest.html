@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            font-family: "Lato", sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar {
+            height: 100%;
+            width: 260px;
+            position: fixed;
+            top: 66px;
+            left: 0;
+            background-color: #006DB5;
+            padding-top: 16px;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 20px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            color: black;
+        }
+
+        .active {
+            color: white;
+            font-weight: bold;
+        }
+
+        .navbar {
+            width: 100%;
+            background-color: #00154D;
+            overflow: auto;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .navbar a {
+            float: left;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .main {
+            margin-left: 280px;
+            padding: 20px;
+        }
+
+        .button {
+            background-color: #3CA9ED;
+            border: none;
+            font-size: 20px;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #006DB5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            z-index: 1000;
+        }
+
+        .form-popup input, .form-popup button {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .form-popup .btn {
+            background-color: #04AA6D;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-popup .cancel {
+            background-color: red;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="#">Crew Cloud</a>
+    </div>
+
+    <div class="sidebar">
+        <a href="employeeDashboard.html" class="active"><i class="fa fa-database"></i> Dashboard</a>
+        <a href="leaveRequest.html"><i class="fa fa-sign-out"></i> Leaves</a>
+        <a href="viewSalary.html"><i class="fa fa-money"></i> Salaries</a>
+        <a href="viewWorkschedule.html"><i class="fa fa-calendar"></i> Work Schedules</a>
+    </div>
+
+    <div class="main">
+        <h1>Leaves</h1>
+        <button class="button" onclick="openAddForm()">Add Leave</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Employee Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Leave Reason</th>
+                    <th>Leave Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="leaveTableBody">
+                <!-- Leave rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Leave Form -->
+    <div class="form-popup" id="addLeaveForm">
+        <form id="addForm">
+            <h2>Add Leave</h2>
+            <input type="number" id="employeeId" placeholder="Employee ID" required>
+            <input type="date" id="startDate" placeholder="Start Date" required>
+            <input type="date" id="endDate" placeholder="End Date" required>
+            <input type="text" id="leaveReason" placeholder="Leave Reason" required>
+
+            <button type="submit" class="btn">Save</button>
+            <button type="button" class="btn cancel" onclick="closeAddForm()">Cancel</button>
+        </form>
+    </div> 
+
+    <!-- Update Leave Form -->
+    <div class="form-popup" id="updateLeaveForm">
+        <form id="updateForm">
+            <h2>Update Leave</h2>
+            <input type="date" id="updateStartDate" placeholder="Start Date" required>
+            <input type="date" id="updateEndDate" placeholder="End Date" required>
+            <input type="text" id="updateLeaveReason" placeholder="Leave Reason" required>
+    
+            <button type="submit" class="btn">Update</button>
+            <button type="button" class="btn cancel" onclick="closeUpdateForm()">Cancel</button>
+        </form>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeAddForm(); closeUpdateForm();"></div>
+
+    <script>
+        const apiUrl = "http://localhost:8080/api/leave";
+        let editingLeaveId = null;
+
+        // Load leaves
+        async function loadLeaves() {
+            const response = await fetch(apiUrl);
+            const leaves = await response.json();
+            const tbody = document.getElementById("leaveTableBody");
+            tbody.innerHTML = '';
+            leaves.forEach(leave => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${leave.leaveId}</td>
+                    <td>${leave.employeeName}</td>
+                    <td>${leave.startDate}</td>
+                    <td>${leave.endDate}</td>
+                    <td>${leave.leaveReason}</td>
+                    <td>${leave.leaveStatus}</td>
+                    <td>
+                        <button onclick="openUpdateForm(${leave.leaveId})">Edit</button>
+                        <button onclick="deleteLeave(${leave.leaveId})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Open Add Form
+        function openAddForm() {
+            document.getElementById("addLeaveForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeAddForm() {
+            document.getElementById("addLeaveForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("addForm").reset();
+        }
+
+        // Open Update Form
+        async function openUpdateForm(leaveId) {
+    try {
+        const response = await fetch(`${apiUrl}/${leaveId}`);
+        if (!response.ok) throw new Error("Failed to fetch leave data");
+        const leave = await response.json();
+        console.log(leave); // Log the leave data to debug
+        editingLeaveId = leaveId;
+        document.getElementById("updateStartDate").value = leave.startDate;
+        document.getElementById("updateEndDate").value = leave.endDate;
+        document.getElementById("updateLeaveReason").value = leave.leaveReason;
+
+        document.getElementById("updateLeaveForm").style.display = "block";
+        document.getElementById("overlay").style.display = "block";
+    } catch (error) {
+        console.error("Error opening update form:", error);
+        alert("Failed to load leave details. Please try again.");
+    }
+}
+
+
+        function closeUpdateForm() {
+            document.getElementById("updateLeaveForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("updateForm").reset();
+        }
+
+        // Add leave
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newLeave = {
+                employeeId: parseInt(document.getElementById("employeeId").value),
+                startDate: document.getElementById("startDate").value,
+                endDate: document.getElementById("endDate").value,
+                leaveReason: document.getElementById("leaveReason").value,
+            };
+
+            await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newLeave),
+            });
+            closeAddForm();
+            loadLeaves();
+        });
+
+        // Update leave
+        document.getElementById("updateForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const updatedLeave = {
+                startDate: document.getElementById("updateStartDate").value,
+                endDate: document.getElementById("updateEndDate").value,
+                leaveReason: document.getElementById("updateLeaveReason").value,
+            };
+
+            await fetch(`${apiUrl}/${editingLeaveId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedLeave),
+            });
+            closeUpdateForm();
+            loadLeaves();
+        });
+
+        // Delete employee
+        async function deleteLeave(leaveId) {
+            if (confirm("Are you sure you want to delete this leave?")) {
+                await fetch(`${apiUrl}/${leaveId}`, { method: "DELETE" });
+                loadLeaves();
+            }
+        }
+
+        // Load leaves on page load
+        loadLeaves();
+    </script>
+</body>
+</html>

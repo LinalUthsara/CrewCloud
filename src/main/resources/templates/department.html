@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            font-family: "Lato", sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar {
+            height: 100%;
+            width: 260px;
+            position: fixed;
+            top: 66px;
+            left: 0;
+            background-color: #006DB5;
+            padding-top: 16px;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 20px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            color: black;
+        }
+
+        .active {
+            color: white;
+            font-weight: bold;
+        }
+
+        .navbar {
+            width: 100%;
+            background-color: #00154D;
+            overflow: auto;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .navbar a {
+            float: left;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .main {
+            margin-left: 280px;
+            padding: 20px;
+        }
+
+        .button {
+            background-color: #3CA9ED;
+            border: none;
+            font-size: 20px;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #006DB5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            z-index: 1000;
+        }
+
+        .form-popup input, .form-popup button {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .form-popup .btn {
+            background-color: #04AA6D;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-popup .cancel {
+            background-color: red;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="#">Crew Cloud</a>
+    </div>
+
+    <div class="sidebar">
+        <a href="adminDashboard.html" class="active"><i class="fa fa-database"></i> Dashboard</a>
+        <a href="department.html" class="active"><i class="fa fa-database"></i> Departments</a>
+        <a href="employee.html"><i class="fa fa-user"></i> Employees</a>
+        <a href="leave.html"><i class="fa fa-sign-out"></i> Leaves</a>
+        <a href="salary.html"><i class="fa fa-money"></i> Salaries</a>
+        <a href="workSchedule.html"><i class="fa fa-calendar"></i> Work Schedules</a>
+    </div>
+
+    <div class="main">
+        <h1>Departments</h1>
+        <button class="button" onclick="openAddForm()">Add Department</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="departmentTableBody">
+                <!-- Employee rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Employee Form -->
+    <div class="form-popup" id="addDepartmentForm">
+        <form id="addForm">
+            <h2>Add Department</h2>
+            <input type="text" id="departmentName" placeholder="Department Name" required>
+            <button type="submit" class="btn">Save</button>
+            <button type="button" class="btn cancel" onclick="closeAddForm()">Cancel</button>
+        </form>
+    </div> 
+
+    <!-- Update Employee Form -->
+    <div class="form-popup" id="updateDepartmentForm">
+        <form id="updateForm">
+            <h2>Update Department</h2>
+            <input type="text" id="updateDepartmentName" placeholder="Department Name" required>
+            <button type="submit" class="btn">Update</button>
+            <button type="button" class="btn cancel" onclick="closeUpdateForm()">Cancel</button>
+        </form>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeAddForm(); closeUpdateForm();"></div>
+
+    <script>
+        const apiUrl = "http://localhost:8080/api/department";
+        let editingDepartmentId = null;
+
+        // Load employees
+        async function loadDepartments() {
+            const response = await fetch(apiUrl);
+            const departments = await response.json();
+            const tbody = document.getElementById("departmentTableBody");
+            tbody.innerHTML = '';
+            departments.forEach(department => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${department.departmentId}</td>
+                    <td>${department.departmentName}</td>
+                    <td>
+                        <button onclick="openUpdateForm(${department.departmentId})">Edit</button>
+                        <button onclick="deleteDepartment(${department.departmentId})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Open Add Form
+        function openAddForm() {
+            document.getElementById("addDepartmentForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeAddForm() {
+            document.getElementById("addDepartmentForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("addForm").reset();
+        }
+
+        // Open Update Form
+        async function openUpdateForm(departmentId) {
+            const response = await fetch(`${apiUrl}/${departmentId}`);
+            const department = await response.json();
+
+            editingDepartmentId = departmentId;
+            document.getElementById("updateDepartmentName").value = department.departmentName;
+
+            document.getElementById("updateDepartmentForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeUpdateForm() {
+            document.getElementById("updateDepartmentForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("updateForm").reset();
+        }
+
+        // Add employee
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newDepartment = {
+                departmentName: document.getElementById("departmentName").value
+            };
+
+            await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newDepartment),
+            });
+            closeAddForm();
+            loadDepartments();
+        });
+
+        // Update employee
+        document.getElementById("updateForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const updatedDepartment = {
+                departmentName: document.getElementById("updateDepartmentName").value
+            };
+
+            await fetch(`${apiUrl}/${editingDepartmentId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedDepartment),
+            });
+            closeUpdateForm();
+            loadDepartments();
+        });
+
+        // Delete employee
+        async function deleteDepartment(departmentId) {
+            if (confirm("Are you sure you want to delete this department?")) {
+                await fetch(`${apiUrl}/${departmentId}`, { method: "DELETE" });
+                loadDepartments();
+            }
+        }
+
+        // Load employees on page load
+        loadDepartments();
+    </script>
+</body>
+</html>

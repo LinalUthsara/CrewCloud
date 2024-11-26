@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            font-family: "Lato", sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar {
+            height: 100%;
+            width: 260px;
+            position: fixed;
+            top: 66px;
+            left: 0;
+            background-color: #006DB5;
+            padding-top: 16px;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 20px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            color: black;
+        }
+
+        .active {
+            color: white;
+            font-weight: bold;
+        }
+
+        .navbar {
+            width: 100%;
+            position: fixed;
+            background-color: #00154D;
+            overflow: auto;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .navbar a {
+            float: left;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .main {
+            margin-left: 280px;
+            padding-top: 100px;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 20px;
+        }
+
+        .button {
+            background-color: #3CA9ED;
+            border: none;
+            font-size: 20px;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #006DB5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            max-height: 80%;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            z-index: 1000;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .form-popup input, .form-popup button {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .form-popup .btn {
+            background-color: #04AA6D;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-popup .cancel {
+            background-color: red;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        .table-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+        }
+
+        .day-item {
+            width: 90px;
+            margin: 5px;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="#">Crew Cloud</a>
+    </div>
+
+    <div class="sidebar">
+        <a href="adminDashboard.html" class="active"><i class="fa fa-database"></i> Dashboard</a>
+        <a href="department.html" class="active"><i class="fa fa-database"></i> Department</a>
+        <a href="employee.html"><i class="fa fa-user"></i> Employees</a>
+        <a href="leave.html"><i class="fa fa-sign-out"></i> Leaves</a>
+        <a href="salary.html"><i class="fa fa-money"></i> Salaries</a>
+        <a href="workSchedule.html"><i class="fa fa-calendar"></i> Work Schedules</a>
+    </div>
+
+    <div class="main">
+        <h1>Work Schedules</h1>
+        <button class="button" onclick="openAddForm()">Add Work Schedule</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>DATE</th>
+                    <th>EMPLOYEE NAME</th>
+                    <th>WORK STATUS</th>
+                    <th>ATTENDANCE STATUS</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="scheduleTableBody">
+                <!-- Employee rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Employee Form -->
+    <div class="form-popup" id="addScheduleForm">
+        <form id="addForm" onsubmit="handleFormSubmit(event)">
+            <h2>Add Monthly Schedule</h2>
+            <div id="dateSelection">
+                <label for="year">Enter Year:</label>
+                <input type="number" id="year" name="year" min="1990" max="2025" placeholder="YYYY" required>
+        
+                <label for="month-select">Select Month:</label>
+                <select id="month-select" name="month" required>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+                <button type="button" onclick="displayDays()">Show Days</button>
+                <button type="button" class="btn cancel" onclick="closeAddForm()">Cancel</button>
+            </div>
+
+            <div id="employeeIdField" style="display: none;">
+                <label for="employeeId">Enter Employee ID:</label>
+                <input type="number" id="employeeId" name="employeeId" placeholder="Employee ID" required>
+            </div>
+
+            <div id="daysGrid" class="table-container"></div>
+            <button type="submit" id="saveScheduleButton" class="btn" style="display: none;">Save Schedule</button>
+        </form>
+    </div> 
+
+    <div class="overlay" id="overlay" onclick="closeAddForm();"></div>
+
+    <!-- Update Employee Form -->
+    <div class="form-popup" id="updateScheduleForm">
+        <form id="updateForm">
+            <h2>Update Schedule</h2>
+            <input type="text" id="updateWorkStatus" placeholder="Work Status" required>
+            <input type="text" id="updateAttendanceStatus" placeholder="Attendance Status" required>
+            <button type="submit" class="btn">Update</button>
+            <button type="button" class="btn cancel" onclick="closeUpdateForm()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        const apiUrl = "http://localhost:8080/api/workSchedule";
+        let editingScheduleId = null;
+
+
+        async function loadSchedules() {
+            const response = await fetch(apiUrl);
+            const schedules = await response.json();
+            const tbody = document.getElementById("scheduleTableBody");
+            tbody.innerHTML = '';
+            schedules.forEach(schedule => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${schedule.scheduleId}</td>
+                    <td>${schedule.date}</td>
+                    <td>${schedule.employeeName}</td>
+                    <td>${schedule.workStatus}</td>
+                    <td>${schedule.attendanceStatus}</td>
+                    <td>
+                        <button onclick="openUpdateForm(${schedule.scheduleId})">Edit</button>
+                        <button onclick="deleteSchedule(${schedule.scheduleId})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function openAddForm() {
+            document.getElementById("addScheduleForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeAddForm() {
+            document.getElementById("addScheduleForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("addForm").reset();
+            document.getElementById("daysGrid").innerHTML = '';
+            document.getElementById("employeeIdField").style.display = 'none';
+            document.getElementById("saveScheduleButton").style.display = 'none';
+        }
+
+        function displayDays() {
+            const year = document.getElementById('year').value;
+            const month = document.getElementById('month-select').value;
+
+            const daysGrid = document.getElementById("daysGrid");
+            daysGrid.innerHTML = '';
+
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const day = i < 10 ? `0${i}` : i;
+                const dayItem = document.createElement("div");
+                dayItem.classList.add("day-item");
+                dayItem.innerHTML = `
+                    <div>${year}-${month}-${day}</div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" />
+                    </div>
+                `;
+                daysGrid.appendChild(dayItem);
+            }
+
+            document.getElementById("employeeIdField").style.display = 'block';
+            document.getElementById("saveScheduleButton").style.display = 'block';
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const year = document.getElementById('year').value;
+            const month = document.getElementById('month-select').value;
+            const employeeId = document.getElementById('employeeId').value;
+
+            const workDays = [];
+            const daysGrid = document.getElementById('daysGrid');
+            const dayItems = daysGrid.getElementsByClassName('day-item');
+
+            for (let dayItem of dayItems) {
+                const date = dayItem.querySelector('div').textContent;
+                const isWorkingDay = dayItem.querySelector('input[type="checkbox"]').checked;
+                workDays.push({ date, isWorkingDay });
+            }
+
+            const payload = {
+                employeeId: parseInt(employeeId, 10),
+                workDays
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert("Schedule added successfully!");
+                    closeAddForm();
+                    loadSchedules();
+                } else {
+                    const errorData = await response.json();
+                    console.error("Error adding schedule:", errorData);
+                    alert("Failed to add schedule. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error connecting to the API:", error);
+                alert("An error occurred while adding the schedule. Please try again.");
+            }
+        }
+
+        
+        // Open Update Form
+        async function openUpdateForm(scheduleId) {
+            const response = await fetch(`${apiUrl}/${scheduleId}`);
+            const schedule = await response.json();
+
+            editingScheduleId = scheduleId;
+            document.getElementById("updateWorkStatus").value = schedule.workStatus;
+            document.getElementById("updateAttendanceStatus").value = schedule.attendanceStatus;
+
+            document.getElementById("updateScheduleForm").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeUpdateForm() {
+            document.getElementById("updateScheduleForm").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("updateForm").reset();
+        }
+
+        // Update schedule
+        document.getElementById("updateForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const updatedSchedule = {
+                workStatus: document.getElementById("updateWorkStatus").value,
+                attendanceStatus: document.getElementById("updateAttendanceStatus").value,
+            };
+
+            await fetch(`${apiUrl}/${editingScheduleId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedSchedule),
+            });
+            closeUpdateForm();
+            loadSchedules();
+        });
+
+        // Delete schedule
+        async function deleteSchedule(scheduleId) {
+            if (confirm("Are you sure you want to delete this schedule?")) {
+                await fetch(`${apiUrl}/${scheduleId}`, { method: "DELETE" });
+                loadSchedules();
+            }
+        }
+
+        window.onload = loadSchedules;
+    </script>
+</body>
+</html>
